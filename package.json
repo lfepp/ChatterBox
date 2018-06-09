@@ -1,0 +1,18 @@
+{
+  "name": "chat-asapp",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lfepp/ChatASAPP.git"
+  },
+  "author": "Lucas Epp",
+  "bugs": {
+    "url": "https://github.com/lfepp/ChatASAPP/issues"
+  },
+  "homepage": "https://github.com/lfepp/ChatASAPP#readme"
+}
