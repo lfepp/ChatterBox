@@ -1,42 +1,99 @@
 import React from 'react';
+import openSocket from 'socket.io-client';
 import ChatWindow from '../ChatWindow';
 
 export default class ChatContainer extends React.Component {
   constructor(props) {
     super(props);
     this.sendMessage = this.sendMessage.bind(this);
+    this.appendMessageGroup = this.appendMessageGroup.bind(this);
+    this.appendMessageToFinalGroup = this.appendMessageToFinalGroup.bind(this);
     this.state = {
-      messages: null,
+      messages: [],
       isLoggedIn: false,
+      loggedInUser: null,
     };
+
+    this.socket = openSocket('http://localhost:8000');
   }
 
   componentDidMount() {
-    socket.on('new message', (data) => {});
+    this.socket.on('login', (username) => {
+      this.setState({
+        isLoggedIn: true,
+        loggedInUser: username,
+      });
+    });
 
-    socket.on('user joined', ({ username }) => {});
+    this.socket.on('new message', (data) => {
+      const lastMessageGroup = this.state.messages[this.state.messages.length - 1];
 
-    socket.on('user left', ({ username }) => {});
+      if (data.type === 'automated') {
+        if (data.type === lastMessageGroup[0].type) {
+          this.appendMessageToFinalGroup(lastMessageGroup, data);
+        } else {
+          this.appendMessageGroup(data);
+        }
+      } else if (data.type === 'user_input') {
+        if (data.userID === lastMessageGroup[0].userID) {
+          this.appendMessageToFinalGroup(lastMessageGroup, data);
+        } else {
+          this.appendMessageGroup(data);
+        }
+      }
+    });
+
+    this.socket.on('user joined', ({ username }) => {
+      this.socket.broadcast.emit('new message', {
+        type: 'automated',
+        content: `${username} has joined the chat`,
+      });
+    });
+
+    this.socket.on('user left', ({ username }) => {
+      this.socket.broadcast.emit('new message', {
+        type: 'automated',
+        content: `${username} has left the chat`,
+      });
+    });
+  }
+
+  appendMessageGroup(data) {
+    this.setState({ messages: [...this.state.messages, [data]] });
+  }
+
+  appendMessageToFinalGroup(lastMessageGroup, data) {
+    lastMessageGroup.push(data);
+    const newMessages = [
+      ...this.state.messages.slice(0, this.state.messages.length - 1),
+      lastMessageGroup,
+    ];
+    this.setState({ messages: newMessages });
   }
 
   sendMessage(val) {
     if (!this.state.isLoggedIn) {
-      socket.emit('sign in or create user', val);
+      this.socket.emit('sign in or create user', val);
     } else {
-      socket.emit('create message', {
+      this.socket.emit('create message', {
         content: val,
       });
     }
   }
 
   render() {
-    this.props.error ?
-    <h1>Error! {this.props.error}</h1> :
     return (
-      <ChatWindow
-        messages={this.state.messages}
-        sendMessage={this.sendMessage}
-      />
+      this.props.error ?
+      (
+        <h1>Error! {this.props.error}</h1>
+      ) :
+      (
+        <ChatWindow
+          messages={this.state.messages}
+          sendMessage={this.sendMessage}
+          username={this.state.loggedInUser}
+        />
+      )
     );
   }
 }

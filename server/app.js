@@ -28,9 +28,11 @@ io.on('connection', (socket) => {
         }
 
         socket.broadcast.emit('new message', {
+          userID: socket.userID,
           username: socket.username,
           content: data.content,
           timestamp: res[0].created_date,
+          type: 'user_input',
         });
       });
     });
