@@ -35,6 +35,8 @@ app.get('/test', function (req, res) {
   });
 });
 
+io.set('transports', ['websocket', 'polling']);
+
 io.on('connection', (socket) => {
   socket.on('create message', (data) => {
     db.getConnection((err, connection) => {
@@ -99,7 +101,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    socket.broadcast.emit('user left', () => { username: socket.username });
+    socket.broadcast.emit('user left', { username: socket.username });
   });
 });
 
