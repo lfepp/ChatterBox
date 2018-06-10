@@ -2,7 +2,7 @@ import React from 'react';
 
 const MessageInput = props => (
   <textarea
-    autofocus={true}
+    autoFocus={true}
     value={props.value}
     onChange={props.handleChange}
   />

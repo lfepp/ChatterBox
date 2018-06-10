@@ -1,5 +1,5 @@
 import React from 'react';
-import openSocket from 'socket.io-client';
+import socketIOClient from 'socket.io-client';
 import ChatWindow from '../ChatWindow';
 
 export default class ChatContainer extends React.Component {
@@ -14,10 +14,21 @@ export default class ChatContainer extends React.Component {
       loggedInUser: null,
     };
 
-    this.socket = openSocket('http://localhost:8000');
+    this.socket = socketIOClient('http://127.0.0.1:8000');
   }
 
   componentDidMount() {
+    console.log('TEST TEST mounted');
+    console.log(this.socket);
+    console.log('TEST TEST break');
+    this.socket.emit('new message', {
+      type: 'automated',
+      content: 'This is a test',
+    });
+    console.log('TEST TEST break');
+    fetch('/test').then(res => (res.json())).then((json) => { console.log('GOT JSON!\n');console.dir(json); }).catch((err) => { console.log(`Got Error! ${err}`); });
+    console.log('TEST TEST break END TEST');
+
     this.socket.on('login', (username) => {
       this.setState({
         isLoggedIn: true,
