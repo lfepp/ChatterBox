@@ -41,24 +41,26 @@ io.on('connection', (socket) => {
   socket.on('create message', (data) => {
     db.getConnection((err, connection) => {
       if (err) {
-        res.status(501).send(err.message);
+        socket.emit('error', { message: err.message, statusCode: 501 });
         return;
       }
 
       const messageData = { content: data.content, user_id: socket.userID };
-      connection.query('INSERT INTO Messages ?', messageData, (err, res, fields) => {
+      connection.query('INSERT INTO Messages SET ?', messageData, (err, results, fields) => {
         if (err) {
-          res.status(501).send(err.message);
+          socket.emit('error', { message: err.message, statusCode: 501 });
           connection.release();
           return;
         }
 
-        socket.broadcast.emit('new message', {
-          userID: socket.userID,
-          username: socket.username,
-          content: data.content,
-          timestamp: res[0].created_date,
-          type: 'user_input',
+        connection.query('SELECT created_date FROM Messages WHERE id = ?', [results.insertId], (err, result, fields) => {
+          socket.broadcast.emit('new message', {
+            userID: socket.userID,
+            username: socket.username,
+            content: data.content,
+            timestamp: result[0].created_date,
+            type: 'user_input',
+          });
         });
       });
     });
@@ -67,29 +69,31 @@ io.on('connection', (socket) => {
   socket.on('sign in or create user', (username) => {
     db.getConnection((err, connection) => {
       if (err) {
-        res.status(501).send(err.message);
+        socket.emit('error', { message: err.message, statusCode: 501 });
         return;
       }
 
-      connection.query('SELECT id FROM Users', (err, res, fields) => {
+      connection.query('SELECT id FROM Users WHERE username = ?', [username], (err, results, fields) => {
         if (err) {
-          res.status(501).send(err.message);
+          socket.emit('error', { message: err.message, statusCode: 501 });
           connection.release();
           return;
         }
 
-        let userID = res[0].id;
-        if (!userID) {
+        let userID;
+        if (results.length === 0) {
           const userData = { username };
-          connection.query('INSERT INTO Users SET ?', userData, (err, res, fields) => {
+          connection.query('INSERT INTO Users SET ?', userData, (err, result, fields) => {
             if (err) {
               res.status(501).send(err.message);
               connection.release();
               return;
             }
 
-            userID = res[0].id;
+            userID = result[0].id;
           });
+        } else {
+          userID = results[0].id;
         }
 
         socket.username = username;

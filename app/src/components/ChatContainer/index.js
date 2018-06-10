@@ -18,7 +18,7 @@ export default class ChatContainer extends React.Component {
   }
 
   componentDidMount() {
-    this.socket.on('login', (username) => {
+    this.socket.on('login', ({ username }) => {
       this.setState({
         isLoggedIn: true,
         loggedInUser: username,
@@ -55,6 +55,10 @@ export default class ChatContainer extends React.Component {
         type: 'automated',
         content: `${username} has left the chat`,
       });
+    });
+
+    this.socket.on('error', ({ message, statusCode }) => {
+      console.error(`Server error: ${statusCode}, ${message}`);
     });
   }
 
