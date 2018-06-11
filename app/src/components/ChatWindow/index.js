@@ -8,6 +8,7 @@ const ChatWindow = props => (
     <MessageList
       messages={props.messages}
       username={props.username}
+      isLoggedIn={props.isLoggedIn}
     />
     <MessageEditor
       sendMessage={props.sendMessage}

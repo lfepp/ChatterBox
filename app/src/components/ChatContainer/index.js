@@ -29,6 +29,10 @@ export default class ChatContainer extends React.Component {
     });
 
     this.socket.on('get messages response', ({ messages }) => {
+      if (messages.length === 0) {
+        return;
+      }
+
       const groupedMessages = [];
       messages.forEach((message) => {
         if (groupedMessages.length === 0) {
@@ -109,6 +113,11 @@ export default class ChatContainer extends React.Component {
     });
 
     this.socket.on('new message', (data) => {
+      if (this.state.messages.length === 0) {
+        this.setState({ messages: [[data]] });
+        return;
+      }
+
       const lastMessageGroup = this.state.messages[this.state.messages.length - 1];
 
       switch (data.type) {
@@ -186,6 +195,7 @@ export default class ChatContainer extends React.Component {
           messages={this.state.messages}
           sendMessage={this.sendMessage}
           username={this.state.loggedInUser}
+          isLoggedIn={this.state.isLoggedIn}
         />
       )
     );

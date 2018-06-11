@@ -10,7 +10,10 @@ const db = mysql.createPool({
 });
 
 const server = require('http').createServer(app);
-const io = require('socket.io')(server);
+const io = require('socket.io')(server, {
+  pingInterval: 10 * 1000,
+  pingTimeout: 30 * 1000,
+});
 
 app.get('/test', function (req, res) {
   db.getConnection(function (err, connection) {
@@ -41,7 +44,6 @@ io.set('transports', ['websocket', 'polling']);
 
 io.on('connection', (socket) => {
   socket.on('error', (error) => {
-    console.error(error);
     socket.emit('error', { message: error.message, statusCode: 500 });
   });
 
@@ -69,7 +71,7 @@ io.on('connection', (socket) => {
             return;
           }
 
-          socket.broadcast.emit('new message', {
+          io.emit('new message', {
             userID: socket.userID,
             roomID: result[0].room_id,
             username: socket.username,
@@ -162,7 +164,6 @@ io.on('connection', (socket) => {
           timePeriod.start ? timePeriod.start : '2018-01-01',
           timePeriod.end ? timePeriod.end : 'NOW()',
         ];
-
         connection.query('SELECT * FROM Messages WHERE user_id = ? AND room_id = ? AND created_date BETWEEN ? AND ?', messageData, (e, result) => {
           if (e) {
             socket.emit('error', { message: e.message, statusCode: 501 });
