@@ -19,9 +19,9 @@ app.get('/test', function (req, res) {
       return;
     }
 
-    connection.query('SELECT count(id) as count FROM Messages', (err, results, fields) => {
-      if (err) {
-        res.status(501).send(err.message);
+    connection.query('SELECT count(id) as count FROM Messages', (error, results) => {
+      if (error) {
+        res.status(501).send(error.message);
         connection.release();
         return;
       }
@@ -45,17 +45,24 @@ io.on('connection', (socket) => {
         return;
       }
 
-      const messageData = { content: data.content, user_id: socket.userID };
-      connection.query('INSERT INTO Messages SET ?', messageData, (err, results, fields) => {
-        if (err) {
-          socket.emit('error', { message: err.message, statusCode: 501 });
+      const messageData = { content: data.content, user_id: socket.userID, room_id: 1 };
+      connection.query('INSERT INTO Messages SET ?', messageData, (error, results) => {
+        if (error) {
+          socket.emit('error', { message: error.message, statusCode: 501 });
           connection.release();
           return;
         }
 
-        connection.query('SELECT created_date FROM Messages WHERE id = ?', [results.insertId], (err, result, fields) => {
+        connection.query('SELECT created_date FROM Messages WHERE id = ?', [results.insertId], (e, result) => {
+          if (e) {
+            socket.emit('error', { message: e.message, statusCode: 501 });
+            connection.release();
+            return;
+          }
+
           socket.broadcast.emit('new message', {
             userID: socket.userID,
+            roomID: result[0].room_id,
             username: socket.username,
             content: data.content,
             timestamp: result[0].created_date,
@@ -73,9 +80,9 @@ io.on('connection', (socket) => {
         return;
       }
 
-      connection.query('SELECT id FROM Users WHERE username = ?', [username], (err, results, fields) => {
-        if (err) {
-          socket.emit('error', { message: err.message, statusCode: 501 });
+      connection.query('SELECT id FROM Users WHERE username = ?', [username], (error, results) => {
+        if (error) {
+          socket.emit('error', { message: error.message, statusCode: 501 });
           connection.release();
           return;
         }
@@ -83,14 +90,22 @@ io.on('connection', (socket) => {
         let userID;
         if (results.length === 0) {
           const userData = { username };
-          connection.query('INSERT INTO Users SET ?', userData, (err, result, fields) => {
-            if (err) {
-              res.status(501).send(err.message);
+          connection.query('INSERT INTO Users SET ?', userData, (e, result) => {
+            if (e) {
+              socket.emit('error', { message: e.message, statusCode: 501 });
               connection.release();
               return;
             }
 
-            userID = result[0].id;
+            userID = result.insertId;
+            const userRoomData = { user_id: userID, room_id: 1 };
+            connection.query('INSERT INTO UserRooms SET ?', userRoomData, (userRoomErr, userRoomRes) => {
+              if (userRoomErr) {
+                socket.emit('error', { message: userRoomErr.message, statusCode: 501 });
+                connection.release();
+                return;
+              }
+            });
           });
         } else {
           userID = results[0].id;

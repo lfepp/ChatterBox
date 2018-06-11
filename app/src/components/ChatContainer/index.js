@@ -18,6 +18,7 @@ export default class ChatContainer extends React.Component {
   }
 
   componentDidMount() {
+    // Listeners
     this.socket.on('login', ({ username }) => {
       this.setState({
         isLoggedIn: true,
