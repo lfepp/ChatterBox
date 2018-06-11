@@ -17,6 +17,7 @@ CREATE TABLE UserRooms (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
   room_id INT NOT NULL,
+  last_online DATETIME NOT NULL DEFAULT NOW(),
   FOREIGN KEY (user_id) REFERENCES Users(id),
   FOREIGN KEY (room_id) REFERENCES Rooms(id)
 );

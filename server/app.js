@@ -19,6 +19,8 @@ app.get('/test', function (req, res) {
       return;
     }
 
+    connection.on('error', (error) => { console.error(error); });
+
     connection.query('SELECT count(id) as count FROM Messages', (error, results) => {
       if (error) {
         res.status(501).send(error.message);
@@ -38,12 +40,19 @@ app.get('/test', function (req, res) {
 io.set('transports', ['websocket', 'polling']);
 
 io.on('connection', (socket) => {
+  socket.on('error', (error) => {
+    console.error(error);
+    socket.emit('error', { message: error.message, statusCode: 500 });
+  });
+
   socket.on('create message', (data) => {
     db.getConnection((err, connection) => {
       if (err) {
         socket.emit('error', { message: err.message, statusCode: 501 });
         return;
       }
+
+      connection.on('error', (error) => { console.error(error); });
 
       const messageData = { content: data.content, user_id: socket.userID, room_id: 1 };
       connection.query('INSERT INTO Messages SET ?', messageData, (error, results) => {
@@ -79,6 +88,8 @@ io.on('connection', (socket) => {
         socket.emit('error', { message: err.message, statusCode: 501 });
         return;
       }
+
+      connection.on('error', (error) => { console.error(error); });
 
       connection.query('SELECT id FROM Users WHERE username = ?', [username], (error, results) => {
         if (error) {
@@ -119,8 +130,71 @@ io.on('connection', (socket) => {
     });
   });
 
+  socket.on('get messages request', ({ before }) => {
+    const timePeriod = {
+      start: null,
+      end: before,
+    };
+
+    db.getConnection((err, connection) => {
+      if (err) {
+        socket.emit('error', { message: err.message, statusCode: 501 });
+        return;
+      }
+
+      connection.on('error', (error) => { console.error(error); });
+
+      const selectValues = [socket.userID, 1];
+      connection.query('SELECT last_online FROM UserRooms WHERE user_id = ? AND room_id = ?', selectValues, (error, results) => {
+        if (error) {
+          socket.emit('error', { message: error.message, statusCode: 501 });
+          connection.release();
+          return;
+        }
+
+        if (results.length > 0) {
+          timePeriod.start = results[0].last_online;
+        }
+
+        const messageData = [
+          socket.userID,
+          1,
+          timePeriod.start ? timePeriod.start : '2018-01-01',
+          timePeriod.end ? timePeriod.end : 'NOW()',
+        ];
+
+        connection.query('SELECT * FROM Messages WHERE user_id = ? AND room_id = ? AND created_date BETWEEN ? AND ?', messageData, (e, result) => {
+          if (e) {
+            socket.emit('error', { message: e.message, statusCode: 501 });
+            connection.release();
+            return;
+          }
+
+          socket.emit('get messages response', { messages: result });
+        });
+      });
+    });
+  });
+
   socket.on('disconnect', () => {
     socket.broadcast.emit('user left', { username: socket.username });
+    db.getConnection((err, connection) => {
+      if (err) {
+        socket.emit('error', { message: err.message, statusCode: 501 });
+        return;
+      }
+
+      connection.on('error', (error) => { console.error(error); });
+
+      const updateValues = [socket.userID, 1];
+      connection.query('UPDATE UserRooms SET last_online = NOW() WHERE user_id = ? AND room_id = ?', updateValues, (updateErr, updateRes) => {
+        if (updateErr) {
+          socket.emit('error', { message: updateErr.message, statusCode: 501 });
+          connection.release();
+          return;
+        }
+      });
+    });
   });
 });
 

@@ -18,29 +18,118 @@ export default class ChatContainer extends React.Component {
   }
 
   componentDidMount() {
-    // Listeners
     this.socket.on('login', ({ username }) => {
+      const before = this.state.messages.length > 0 ? this.state.messages[0].created_date : null;
+      this.socket.emit('get messages request', { before });
+
       this.setState({
         isLoggedIn: true,
         loggedInUser: username,
       });
     });
 
+    this.socket.on('get messages response', ({ messages }) => {
+      const groupedMessages = [];
+      messages.forEach((message) => {
+        if (groupedMessages.length === 0) {
+          groupedMessages.push([message]);
+          return;
+        }
+
+        const lastMessageGroup = groupedMessages[groupedMessages.length - 1];
+        switch (message.type) {
+          case 'automated': {
+            if (message.type === lastMessageGroup[0].type) {
+              groupedMessages[groupedMessages.length - 1].push(message);
+            } else {
+              groupedMessages.push([message]);
+            }
+            break;
+          }
+          case 'user_input': {
+            if (message.userID === lastMessageGroup[0].userID) {
+              groupedMessages[groupedMessages.length - 1].push(message);
+            } else {
+              groupedMessages.push([message]);
+            }
+            break;
+          }
+          default:
+            break;
+        }
+      });
+
+      let newMessages;
+      switch (groupedMessages[groupedMessages.length - 1].type) {
+        case 'automated': {
+          if (this.state.messages[0].type === 'automated') {
+            newMessages = [
+              ...groupedMessages.slice(0, groupedMessages.length - 1),
+              [
+                ...groupedMessages[groupedMessages.length - 1],
+                ...this.state.messages[0],
+              ],
+              ...this.state.messages.slice(1),
+            ];
+          } else {
+            newMessages = [
+              ...groupedMessages,
+              ...this.state.messages,
+            ];
+          }
+          break;
+        }
+        case 'user_input': {
+          if (groupedMessages[groupedMessages.length - 1].userID === this.state.messages[0].userID) {
+            newMessages = [
+              ...groupedMessages.slice(0, groupedMessages.length - 1),
+              [
+                ...groupedMessages[groupedMessages.lenght - 1],
+                ...this.state.messages[0],
+              ],
+              ...this.state.messages.slice(1),
+            ];
+          } else {
+            newMessages = [
+              ...groupedMessages,
+              ...this.state.messages,
+            ];
+          }
+          break;
+        }
+        default:
+          newMessages = [
+            ...groupedMessages,
+            ...this.state.messages,
+          ];
+          break;
+      }
+
+      this.setState({ messages: newMessages });
+    });
+
     this.socket.on('new message', (data) => {
       const lastMessageGroup = this.state.messages[this.state.messages.length - 1];
 
-      if (data.type === 'automated') {
-        if (data.type === lastMessageGroup[0].type) {
-          this.appendMessageToFinalGroup(lastMessageGroup, data);
-        } else {
-          this.appendMessageGroup(data);
+      switch (data.type) {
+        case 'automated': {
+          if (data.type === lastMessageGroup[0].type) {
+            this.appendMessageToFinalGroup(lastMessageGroup, data);
+          } else {
+            this.appendMessageGroup(data);
+          }
+          break;
         }
-      } else if (data.type === 'user_input') {
-        if (data.userID === lastMessageGroup[0].userID) {
-          this.appendMessageToFinalGroup(lastMessageGroup, data);
-        } else {
-          this.appendMessageGroup(data);
+        case 'user_input': {
+          if (data.userID === lastMessageGroup[0].userID) {
+            this.appendMessageToFinalGroup(lastMessageGroup, data);
+          } else {
+            this.appendMessageGroup(data);
+          }
+          break;
         }
+        default:
+          break;
       }
     });
 
