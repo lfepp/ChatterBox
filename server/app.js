@@ -10,10 +10,7 @@ const db = mysql.createPool({
 });
 
 const server = require('http').createServer(app);
-const io = require('socket.io')(server, {
-  pingInterval: 10 * 1000,
-  pingTimeout: 30 * 1000,
-});
+const io = require('socket.io')(server);
 
 app.get('/test', function (req, res) {
   db.getConnection(function (err, connection) {
@@ -71,14 +68,15 @@ io.on('connection', (socket) => {
             return;
           }
 
-          io.emit('new message', {
+          const emitMessageData = {
             userID: socket.userID,
             roomID: result[0].room_id,
             username: socket.username,
             content: data.content,
             timestamp: result[0].created_date,
             type: 'user_input',
-          });
+          };
+          io.emit('new message', emitMessageData);
         });
       });
     });
@@ -129,7 +127,7 @@ io.on('connection', (socket) => {
         socket.emit('login', { username: socket.username });
         socket.broadcast.emit('new message', {
           type: 'automated',
-          content: `${socket.username} has joined the chat`,
+          content: `${username} has joined the chat`,
           timestamp: new Date().getTime(),
         });
       });
@@ -138,8 +136,8 @@ io.on('connection', (socket) => {
 
   socket.on('get messages request', ({ before }) => {
     const timePeriod = {
-      start: null,
-      end: before,
+      start: '2018-01-01',
+      end: before ? before : 'NOW()',
     };
 
     db.getConnection((err, connection) => {
@@ -165,8 +163,8 @@ io.on('connection', (socket) => {
         const messageData = [
           socket.userID,
           1,
-          timePeriod.start ? timePeriod.start : '2018-01-01',
-          timePeriod.end ? timePeriod.end : 'NOW()',
+          timePeriod.start,
+          timePeriod.end,
         ];
         connection.query('SELECT * FROM Messages WHERE user_id = ? AND room_id = ? AND created_date BETWEEN ? AND ?', messageData, (e, result) => {
           if (e) {
@@ -182,11 +180,6 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    socket.broadcast.emit('new message', {
-      type: 'automated',
-      content: `${socket.username} has left the chat`,
-      timestamp: new Date().getTime(),
-    });
     db.getConnection((err, connection) => {
       if (err) {
         socket.emit('error', { message: err.message, statusCode: 501 });
@@ -202,6 +195,13 @@ io.on('connection', (socket) => {
           connection.release();
           return;
         }
+
+        const username = socket.username;
+        socket.broadcast.emit('new message', {
+          type: 'automated',
+          content: `${username} has left the chat`,
+          timestamp: new Date().getTime(),
+        });
       });
     });
   });

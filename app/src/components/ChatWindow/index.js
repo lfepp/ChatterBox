@@ -7,7 +7,6 @@ const ChatWindow = props => (
     <h2>General Chat</h2>
     <MessageList
       messages={props.messages}
-      username={props.username}
       isLoggedIn={props.isLoggedIn}
     />
     <MessageEditor

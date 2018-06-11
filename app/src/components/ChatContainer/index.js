@@ -11,7 +11,6 @@ export default class ChatContainer extends React.Component {
     this.state = {
       messages: [],
       isLoggedIn: false,
-      loggedInUser: null,
     };
 
     this.socket = socketIOClient('http://127.0.0.1:18000', { transports: ['websocket', 'polling'] });
@@ -22,10 +21,7 @@ export default class ChatContainer extends React.Component {
       const before = this.state.messages.length > 0 ? this.state.messages[0].created_date : null;
       this.socket.emit('get messages request', { before });
 
-      this.setState({
-        isLoggedIn: true,
-        loggedInUser: username,
-      });
+      this.setState({ isLoggedIn: true });
     });
 
     this.socket.on('get messages response', ({ messages }) => {
@@ -180,7 +176,6 @@ export default class ChatContainer extends React.Component {
         <ChatWindow
           messages={this.state.messages}
           sendMessage={this.sendMessage}
-          username={this.state.loggedInUser}
           isLoggedIn={this.state.isLoggedIn}
         />
       )
