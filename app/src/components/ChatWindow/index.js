@@ -11,6 +11,7 @@ const ChatWindow = props => (
     />
     <MessageEditor
       sendMessage={props.sendMessage}
+      getPreviousMessages={props.getPreviousMessages}
     />
   </div>
 );

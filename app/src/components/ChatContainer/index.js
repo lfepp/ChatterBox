@@ -6,6 +6,7 @@ export default class ChatContainer extends React.Component {
   constructor(props) {
     super(props);
     this.sendMessage = this.sendMessage.bind(this);
+    this.getPreviousMessages = this.getPreviousMessages.bind(this);
     this.appendMessageGroup = this.appendMessageGroup.bind(this);
     this.appendMessageToFinalGroup = this.appendMessageToFinalGroup.bind(this);
     this.state = {
@@ -166,6 +167,12 @@ export default class ChatContainer extends React.Component {
     }
   }
 
+  getPreviousMessages() {
+    this.socket.emit('get messages request', {
+      getPrevious: true,
+    });
+  }
+
   render() {
     return (
       this.props.error ?
@@ -176,6 +183,7 @@ export default class ChatContainer extends React.Component {
         <ChatWindow
           messages={this.state.messages}
           sendMessage={this.sendMessage}
+          getPreviousMessages={this.getPreviousMessages}
           isLoggedIn={this.state.isLoggedIn}
         />
       )

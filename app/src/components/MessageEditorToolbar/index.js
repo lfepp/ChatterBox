@@ -1,8 +1,9 @@
 import React from 'react';
 
-const MessageEditorToolbar = ({ sendMessage }) => (
+const MessageEditorToolbar = ({ sendMessage, getPreviousMessages }) => (
   <div>
-    <button onClick={sendMessage}>Send</button>
+    <button onClick={getPreviousMessages}>See Previous Messages</button>
+    <button onClick={sendMessage}>Send Message</button>
   </div>
 );
 

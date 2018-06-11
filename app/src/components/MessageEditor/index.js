@@ -32,6 +32,7 @@ export default class MessageEditor extends React.Component {
         />
         <MessageEditorToolbar
           sendMessage={this.sendMessage}
+          getPreviousMessages={this.props.getPreviousMessages}
         />
       </div>
     );

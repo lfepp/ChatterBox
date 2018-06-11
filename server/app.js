@@ -153,10 +153,10 @@ io.on('connection', (socket) => {
     });
   });
 
-  socket.on('get messages request', ({ before }) => {
+  socket.on('get messages request', ({ before, getPrevious }) => {
     const timePeriod = {
       start: '2018-01-01',
-      end: before ? before : 'NOW()',
+      end: before ? new Date(before) : { toSqlString: () => ('NOW()') },
     };
 
     db.getConnection((err, connection) => {
@@ -178,26 +178,47 @@ io.on('connection', (socket) => {
           return;
         }
 
-        if (results.length > 0) {
-          timePeriod.start = results[0].last_online;
+        if (results.length > 0 && !getPrevious) {
+          timePeriod.start = new Date(results[0].last_online);
         }
 
         const messageData = [
-          socket.userID,
           1,
           timePeriod.start,
           timePeriod.end,
         ];
-        connection.query('SELECT * FROM Messages WHERE user_id = ? AND room_id = ? AND created_date BETWEEN ? AND ?', messageData, (e, result) => {
-          if (e) {
-            socket.emit('error', { message: e.message, statusCode: 501 });
-            connection.release();
-            return;
-          }
 
-          socket.emit('get messages response', { messages: result });
-          connection.release();
-        });
+        connection.query(
+          ' \
+            SELECT u.username, m.* \
+            FROM Messages m \
+              JOIN Users u ON (u.id = m.user_id) \
+            WHERE m.room_id = ? \
+            AND m.created_date BETWEEN ? AND ? \
+          ',
+          messageData,
+          (e, result) => {
+            if (e) {
+              console.error(e);
+              socket.emit('error', { message: e.message, statusCode: 501 });
+              connection.release();
+              return;
+            }
+
+            const responseData = {
+              messages: result.map(message => ({
+                userID: message.user_id,
+                roomID: message.room_id,
+                username: message.username,
+                content: message.content,
+                timestamp: message.created_date,
+                type: 'user_input',
+              })),
+            };
+            socket.emit('get messages response', responseData);
+            connection.release();
+          },
+        );
       });
     });
   });
