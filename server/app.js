@@ -19,7 +19,10 @@ app.get('/test', function (req, res) {
       return;
     }
 
-    connection.on('error', (error) => { console.error(error); });
+    connection.on('error', (error) => {
+      console.error(error);
+      connection.release();
+    });
 
     connection.query('SELECT count(id) as count FROM Messages', (error, results) => {
       if (error) {
@@ -51,7 +54,10 @@ io.on('connection', (socket) => {
         return;
       }
 
-      connection.on('error', (error) => { console.error(error); });
+      connection.on('error', (error) => {
+        console.error(error);
+        connection.release();
+      });
 
       const messageData = { content: data.content, user_id: socket.userID, room_id: 1 };
       connection.query('INSERT INTO Messages SET ?', messageData, (error, results) => {
@@ -77,6 +83,7 @@ io.on('connection', (socket) => {
             type: 'user_input',
           };
           io.emit('new message', emitMessageData);
+          connection.release();
         });
       });
     });
@@ -89,7 +96,10 @@ io.on('connection', (socket) => {
         return;
       }
 
-      connection.on('error', (error) => { console.error(error); });
+      connection.on('error', (error) => {
+        console.error(error);
+        connection.release();
+      });
 
       connection.query('SELECT id FROM Users WHERE username = ?', [username], (error, results) => {
         if (error) {
@@ -116,20 +126,29 @@ io.on('connection', (socket) => {
                 connection.release();
                 return;
               }
+
+              socket.username = username;
+              socket.userID = userID;
+              socket.emit('login', { username: socket.username });
+              socket.broadcast.emit('new message', {
+                type: 'automated',
+                content: `${username} has joined the chat`,
+                timestamp: new Date().getTime(),
+              });
+              connection.release();
             });
           });
         } else {
-          userID = results[0].id;
+          socket.username = username;
+          socket.userID = results[0].id;
+          socket.emit('login', { username: socket.username });
+          socket.broadcast.emit('new message', {
+            type: 'automated',
+            content: `${username} has joined the chat`,
+            timestamp: new Date().getTime(),
+          });
+          connection.release();
         }
-
-        socket.username = username;
-        socket.userID = userID;
-        socket.emit('login', { username: socket.username });
-        socket.broadcast.emit('new message', {
-          type: 'automated',
-          content: `${username} has joined the chat`,
-          timestamp: new Date().getTime(),
-        });
       });
     });
   });
@@ -146,7 +165,10 @@ io.on('connection', (socket) => {
         return;
       }
 
-      connection.on('error', (error) => { console.error(error); });
+      connection.on('error', (error) => {
+        console.error(error);
+        connection.release();
+      });
 
       const selectValues = [socket.userID, 1];
       connection.query('SELECT last_online FROM UserRooms WHERE user_id = ? AND room_id = ?', selectValues, (error, results) => {
@@ -174,6 +196,7 @@ io.on('connection', (socket) => {
           }
 
           socket.emit('get messages response', { messages: result });
+          connection.release();
         });
       });
     });
@@ -186,7 +209,10 @@ io.on('connection', (socket) => {
         return;
       }
 
-      connection.on('error', (error) => { console.error(error); });
+      connection.on('error', (error) => {
+        console.error(error);
+        connection.release();
+      });
 
       const updateValues = [socket.userID, 1];
       connection.query('UPDATE UserRooms SET last_online = NOW() WHERE user_id = ? AND room_id = ?', updateValues, (updateErr, updateRes) => {
@@ -197,16 +223,19 @@ io.on('connection', (socket) => {
         }
 
         const username = socket.username;
-        socket.broadcast.emit('new message', {
-          type: 'automated',
-          content: `${username} has left the chat`,
-          timestamp: new Date().getTime(),
-        });
+        if (username !== undefined) {
+          socket.broadcast.emit('new message', {
+            type: 'automated',
+            content: `${username} has left the chat`,
+            timestamp: new Date().getTime(),
+          });
+        }
+        connection.release();
       });
     });
   });
 });
 
 server.listen(process.env.PORT || 8000, function() {
-    console.log('Listening on port 8000');
+  console.log('Listening on port 8000');
 });
