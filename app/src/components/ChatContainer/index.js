@@ -142,20 +142,6 @@ export default class ChatContainer extends React.Component {
       }
     });
 
-    this.socket.on('user joined', ({ username }) => {
-      this.socket.broadcast.emit('new message', {
-        type: 'automated',
-        content: `${username} has joined the chat`,
-      });
-    });
-
-    this.socket.on('user left', ({ username }) => {
-      this.socket.broadcast.emit('new message', {
-        type: 'automated',
-        content: `${username} has left the chat`,
-      });
-    });
-
     this.socket.on('error', ({ message, statusCode }) => {
       console.error(`Server error: ${statusCode}, ${message}`);
     });

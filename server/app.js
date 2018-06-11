@@ -127,7 +127,11 @@ io.on('connection', (socket) => {
         socket.username = username;
         socket.userID = userID;
         socket.emit('login', { username: socket.username });
-        socket.broadcast.emit('user joined', { username: socket.username });
+        socket.broadcast.emit('new message', {
+          type: 'automated',
+          content: `${socket.username} has joined the chat`,
+          timestamp: new Date().getTime(),
+        });
       });
     });
   });
@@ -178,7 +182,11 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    socket.broadcast.emit('user left', { username: socket.username });
+    socket.broadcast.emit('new message', {
+      type: 'automated',
+      content: `${socket.username} has left the chat`,
+      timestamp: new Date().getTime(),
+    });
     db.getConnection((err, connection) => {
       if (err) {
         socket.emit('error', { message: err.message, statusCode: 501 });
