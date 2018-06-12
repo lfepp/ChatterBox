@@ -57,6 +57,20 @@ const getDBConnection = (socket, callback) => {
   });
 };
 
+const startDBTransaction = (socket, connection, callback) => {
+  connection.beginTransaction((err) => {
+    if (err) {
+      socket.emit('error', { ...err, statusCode: 501 });
+      connection.release();
+      return;
+    }
+
+    callback();
+  });
+};
+
+const queryDB = (socket, connection, isTransaction, callback) => {};
+
 io.set('transports', ['websocket', 'polling']);
 
 io.on('connection', (socket) => {
@@ -96,13 +110,7 @@ io.on('connection', (socket) => {
 
   socket.on('create message', (data) => {
     getDBConnection(socket, (connection) => {
-      connection.beginTransaction((transactionError) => {
-        if (transactionError) {
-          socket.emit('error', { ...transactionError, statusCode: 501 });
-          connection.release();
-          return;
-        }
-
+      startDBTransaction(socket, connection, () => {
         const messageData = { content: data.content, user_id: socket.userID, room_id: 1 };
         connection.query('INSERT INTO Messages SET ?', messageData, (error, results) => {
           if (error) {
@@ -152,15 +160,8 @@ io.on('connection', (socket) => {
           return;
         }
 
-        let userID;
         if (results.length === 0) {
-          connection.beginTransaction((transactionError) => {
-            if (transactionError) {
-              socket.emit('error', { ...transactionError, statusCode: 501 });
-              connection.release();
-              return;
-            }
-
+          startDBTransaction(socket, connection, () => {
             const userData = { username };
             connection.query('INSERT INTO Users SET ?', userData, (e, result) => {
               if (e) {
@@ -170,7 +171,7 @@ io.on('connection', (socket) => {
                 });
               }
 
-              userID = result.insertId;
+              const userID = result.insertId;
               const userRoomData = { user_id: userID, room_id: 1, is_active: true };
               connection.query('INSERT INTO UserRooms SET ?', userRoomData, (userRoomErr, userRoomRes) => {
                 if (userRoomErr) {
@@ -211,13 +212,7 @@ io.on('connection', (socket) => {
           });
 
           const userRoomData = [socket.userID, 1];
-          connection.beginTransaction((transactionError) => {
-            if (transactionError) {
-              socket.emit('error', { ...transactionError, statusCode: 501 });
-              connection.release();
-              return;
-            }
-
+          startDBTransaction(socket, connection, () => {
             connection.query('UPDATE UserRooms SET is_active = TRUE WHERE user_id = ? AND room_id = ?', userRoomData, (userRoomErr, userRoomRes) => {
               if (userRoomErr) {
                 return connection.rollback(() => {
@@ -310,13 +305,7 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     getDBConnection(socket, (connection) => {
-      connection.beginTransaction((transactionError) => {
-        if (transactionError) {
-          socket.emit('error', { ...transactionError, statusCode: 501 });
-          connection.release();
-          return;
-        }
-
+      startDBTransaction(socket, connection, () => {
         const username = socket.username;
         const userID = socket.userID;
         const updateValues = [userID, 1];
