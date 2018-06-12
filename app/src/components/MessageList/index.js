@@ -1,11 +1,12 @@
 import React from 'react';
+import { Alert, ListGroup } from 'react-bootstrap';
 import ChatMessage from '../ChatMessage';
 
 const MessageList = ({ messages, isLoggedIn, loggedInUser }) => {
   if (messages.length === 0) {
     return (
-      <div>
-        {isLoggedIn ? null : <p>Please log in to see older messages or respond</p>}
+      <div className="chat-message-list">
+        {isLoggedIn ? null : <Alert bsStyle="info">Please log in to see older messages or respond</Alert>}
         <p>No new messages...</p>
       </div>
     );
@@ -13,7 +14,7 @@ const MessageList = ({ messages, isLoggedIn, loggedInUser }) => {
 
   return (
     <div className="chat-message-list">
-      {isLoggedIn ? null : <h3>Please log in to see older messages or respond</h3>}
+      {isLoggedIn ? null : <Alert bsStyle="info">Please log in to see older messages or respond</Alert>}
       {messages.map((group, index) => (
         <div
           key={`message-group-${index}`}
@@ -22,12 +23,14 @@ const MessageList = ({ messages, isLoggedIn, loggedInUser }) => {
           {group[0].type === 'user_input' &&
             <h4>{group[0].username}</h4>
           }
-          {group.map((messageData, i) => (
-            <ChatMessage
-              key={`group-${index}-message-${messageData.timestamp}-${i}`}
-              {...messageData}
-            />
-          ))}
+          <ListGroup>
+            {group.map((messageData, i) => (
+              <ChatMessage
+                key={`group-${index}-message-${messageData.timestamp}-${i}`}
+                {...messageData}
+              />
+            ))}
+          </ListGroup>
         </div>
       ))}
     </div>

@@ -1,14 +1,14 @@
 import React from 'react';
-import { Grid, Row } from 'react-bootstrap';
+import { Panel } from 'react-bootstrap';
 import MessageList from '../MessageList';
 import MessageEditor from '../MessageEditor';
 
 const ChatWindow = props => (
-  <Grid className="chat-window">
-    <Row className="chat-header">
-      <h2>{props.roomTitle}</h2>
-    </Row>
-    <Row>
+  <Panel className="chat-window">
+    <Panel.Heading className="chat-header">
+      <Panel.Title componentClass="h2">{props.roomTitle}</Panel.Title>
+    </Panel.Heading>
+    <Panel.Body>
       <MessageList
         messages={props.messages}
         isLoggedIn={props.isLoggedIn}
@@ -18,8 +18,8 @@ const ChatWindow = props => (
         sendMessage={props.sendMessage}
         getPreviousMessages={props.getPreviousMessages}
       />
-    </Row>
-  </Grid>
+    </Panel.Body>
+  </Panel>
 );
 
 export default ChatWindow;
