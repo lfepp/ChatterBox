@@ -13,6 +13,7 @@ export default class ChatContainer extends React.Component {
       messages: [],
       isLoggedIn: false,
       loggedInUser: null,
+      canGetPreviousMessages: false,
     };
 
     this.socket = socketIOClient('http://127.0.0.1:18000', { transports: ['websocket', 'polling'] });
@@ -23,14 +24,10 @@ export default class ChatContainer extends React.Component {
       const before = this.state.messages.length > 0 ? this.state.messages[0].created_date : null;
       this.socket.emit('get messages request', { before });
 
-      console.log('TEST TEST login');
-      console.log(userID);
-      console.log('TEST TEST break');
-      console.log(username);
-      console.log('TEST TEST break');
       this.setState({
         isLoggedIn: true,
         loggedInUser: userID,
+        canGetPreviousMessages: true,
       });
     });
 
@@ -177,8 +174,20 @@ export default class ChatContainer extends React.Component {
   }
 
   getPreviousMessages() {
+    // const before = this.state.messages.length > 0 ? this.state.messages[0][0].timestamp : null;
+    let before = null;
+    if (this.state.messages.length > 0) {
+      before = new Date(this.state.messages[0][0].timestamp);
+      before.setSeconds(before.getSeconds() - 1);
+      before = before.getTime();
+    }
+
     this.socket.emit('get messages request', {
       getPrevious: true,
+      before,
+    });
+    this.setState({
+      canGetPreviousMessages: false,
     });
   }
 
@@ -190,11 +199,9 @@ export default class ChatContainer extends React.Component {
       ) :
       (
         <ChatWindow
-          messages={this.state.messages}
+          {...this.state}
           sendMessage={this.sendMessage}
           getPreviousMessages={this.getPreviousMessages}
-          isLoggedIn={this.state.isLoggedIn}
-          loggedInUser={this.state.loggedInUser}
           roomTitle="General Chat"
         />
       )

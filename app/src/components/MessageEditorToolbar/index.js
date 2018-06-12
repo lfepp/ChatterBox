@@ -1,10 +1,12 @@
 import React from 'react';
 import { ButtonToolbar, Button } from 'react-bootstrap';
 
-const MessageEditorToolbar = ({ sendMessage, getPreviousMessages }) => (
+const MessageEditorToolbar = props => (
   <ButtonToolbar className="chat-message-editor-toolbar">
-    <Button onClick={getPreviousMessages}>See Previous Messages</Button>
-    <Button onClick={sendMessage} bsStyle="success">Send Message</Button>
+    {props.canGetPreviousMessages ? <Button onClick={props.getPreviousMessages}>See Previous Messages</Button> : null}
+    <Button onClick={props.sendMessage} bsStyle="success">
+      {props.isLoggedIn ? 'Send Message' : 'Login or Create Account'}
+    </Button>
   </ButtonToolbar>
 );
 

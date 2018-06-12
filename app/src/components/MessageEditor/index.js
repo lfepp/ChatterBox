@@ -33,6 +33,8 @@ export default class MessageEditor extends React.Component {
         <MessageEditorToolbar
           sendMessage={this.sendMessage}
           getPreviousMessages={this.props.getPreviousMessages}
+          canGetPreviousMessages={this.props.canGetPreviousMessages}
+          isLoggedIn={this.props.isLoggedIn}
         />
       </div>
     );

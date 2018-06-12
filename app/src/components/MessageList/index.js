@@ -6,15 +6,32 @@ const MessageList = ({ messages, isLoggedIn, loggedInUser }) => {
   if (messages.length === 0) {
     return (
       <div className="chat-message-list">
-        {isLoggedIn ? null : <Alert bsStyle="info">Please log in to see older messages or respond</Alert>}
-        <p>No new messages...</p>
+        {
+          isLoggedIn ?
+          <p>No new messages...</p> :
+          (
+            <Alert bsStyle="info">
+              Please log in to see older messages or respond
+              <small>Submit your username to create an account or sign in</small>
+            </Alert>
+          )
+        }
       </div>
     );
   }
 
   return (
     <div className="chat-message-list">
-      {isLoggedIn ? null : <Alert bsStyle="info">Please log in to see older messages or respond</Alert>}
+      {
+        isLoggedIn ?
+        null :
+        (
+          <Alert bsStyle="info">
+            Please log in to see older messages or respond
+            <small>Submit your username to create an account or sign in</small>
+          </Alert>
+        )
+      }
       {messages.map((group, index) => (
         <div
           key={`message-group-${index}`}

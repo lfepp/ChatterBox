@@ -17,6 +17,8 @@ const ChatWindow = props => (
       <MessageEditor
         sendMessage={props.sendMessage}
         getPreviousMessages={props.getPreviousMessages}
+        canGetPreviousMessages={props.canGetPreviousMessages}
+        isLoggedIn={props.isLoggedIn}
       />
     </Panel.Body>
   </Panel>
