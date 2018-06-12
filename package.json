@@ -10,6 +10,7 @@
     "type": "git",
     "url": "git+https://github.com/lfepp/ChatASAPP.git"
   },
+  "license": "MIT",
   "author": "Lucas Epp",
   "bugs": {
     "url": "https://github.com/lfepp/ChatASAPP/issues"

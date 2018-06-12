@@ -40,6 +40,23 @@ app.get('/test', function (req, res) {
   });
 });
 
+const getDBConnection = (socket, callback) => {
+  db.getConnection((err, connection) => {
+    if (err) {
+      socket.emit('error', { ...err, statusCode: 501 });
+      return;
+    }
+
+    connection.on('error', (err) => {
+      console.error(err);
+      socket.emit('error', { ...err, statusCode: 501 });
+      connection.release();
+    });
+
+    callback(connection);
+  });
+};
+
 io.set('transports', ['websocket', 'polling']);
 
 io.on('connection', (socket) => {
@@ -53,17 +70,7 @@ io.on('connection', (socket) => {
       return;
     }
 
-    db.getConnection((err, connection) => {
-      if (err) {
-        socket.emit('error', { ...err, statusCode: 501 });
-        return;
-      }
-
-      connection.on('error', (error) => {
-        console.error(error);
-        connection.release();
-      });
-
+    getDBConnection(socket, (connection) => {
       const userQueryData = [1];
       connection.query(
         ' \
@@ -88,17 +95,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('create message', (data) => {
-    db.getConnection((err, connection) => {
-      if (err) {
-        socket.emit('error', { ...err, statusCode: 501 });
-        return;
-      }
-
-      connection.on('error', (error) => {
-        console.error(error);
-        connection.release();
-      });
-
+    getDBConnection(socket, (connection) => {
       connection.beginTransaction((transactionError) => {
         if (transactionError) {
           socket.emit('error', { ...transactionError, statusCode: 501 });
@@ -147,17 +144,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('sign in or create user', (username) => {
-    db.getConnection((err, connection) => {
-      if (err) {
-        socket.emit('error', { ...err, statusCode: 501 });
-        return;
-      }
-
-      connection.on('error', (error) => {
-        console.error(error);
-        connection.release();
-      });
-
+    getDBConnection(socket, (connection) => {
       connection.query('SELECT id FROM Users WHERE username = ?', [username], (error, results) => {
         if (error) {
           socket.emit('error', { ...error, statusCode: 501 });
@@ -267,17 +254,7 @@ io.on('connection', (socket) => {
       end: before ? new Date(before) : { toSqlString: () => ('NOW()') },
     };
 
-    db.getConnection((err, connection) => {
-      if (err) {
-        socket.emit('error', { ...err, statusCode: 501 });
-        return;
-      }
-
-      connection.on('error', (error) => {
-        console.error(error);
-        connection.release();
-      });
-
+    getDBConnection(socket, (connection) => {
       const selectValues = [socket.userID, 1];
       connection.query('SELECT last_online FROM UserRooms WHERE user_id = ? AND room_id = ?', selectValues, (error, results) => {
         if (error) {
@@ -332,17 +309,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    db.getConnection((err, connection) => {
-      if (err) {
-        socket.emit('error', { ...err, statusCode: 501 });
-        return;
-      }
-
-      connection.on('error', (error) => {
-        console.error(error);
-        connection.release();
-      });
-
+    getDBConnection(socket, (connection) => {
       connection.beginTransaction((transactionError) => {
         if (transactionError) {
           socket.emit('error', { ...transactionError, statusCode: 501 });
