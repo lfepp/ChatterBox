@@ -1,10 +1,47 @@
 body {
+  background: #fefefe;
   margin: 0;
   padding: 0;
-  font-family: sans-serif;
+  font-family: 'Quicksand', sans-serif;
 }
 
 pre {
   padding: 1em;
   background-color: #ccc;
+}
+
+.chat-app-container {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+  width: 80%;
+}
+
+.chat-window {
+  background: #ddd;
+  border-radius: 7px;
+  border: 1px solid #333;
+  width: 100%;
+}
+
+.chat-message-list {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-message-group {
+  background: #666;
+  max-width: 40%;
+}
+
+.chat-message-group.chat-message-own-group {
+  align-self: flex-end;
+  background: #999;
+}
+
+.chat-message {
+  border: 1px solid #333;
+  border-radius: 4px;
 }

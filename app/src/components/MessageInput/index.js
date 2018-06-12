@@ -5,6 +5,7 @@ const MessageInput = props => (
     autoFocus={true}
     value={props.value}
     onChange={props.handleChange}
+    className="chat-message-editor-input"
   />
 );
 

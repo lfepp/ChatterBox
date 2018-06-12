@@ -4,9 +4,9 @@ const ChatMessage = props => {
   const date = new Date(props.timestamp);
 
   return (
-    <div>
-      <p>{props.content}</p>
-      <p>{`${date.toLocaleDateString('en-US')} at ${date.toLocaleTimeString('en-US')}`}</p>
+    <div className="chat-message">
+      <p className="chat-message-content">{props.content}</p>
+      <p className="chat-message-date">{`${date.toLocaleDateString('en-US')} at ${date.toLocaleTimeString('en-US')}`}</p>
     </div>
   );
 };

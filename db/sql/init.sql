@@ -18,6 +18,7 @@ CREATE TABLE UserRooms (
   user_id INT NOT NULL,
   room_id INT NOT NULL,
   last_online DATETIME NOT NULL DEFAULT NOW(),
+  is_active BOOLEAN NOT NULL DEFAULT FALSE,
   FOREIGN KEY (user_id) REFERENCES Users(id),
   FOREIGN KEY (room_id) REFERENCES Rooms(id)
 );

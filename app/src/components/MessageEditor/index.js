@@ -25,7 +25,7 @@ export default class MessageEditor extends React.Component {
 
   render() {
     return (
-      <div>
+      <div className="chat-message-editor">
         <MessageInput
           value={this.state.inputValue}
           handleChange={this.handleInputChange}

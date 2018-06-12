@@ -129,7 +129,7 @@ io.on('connection', (socket) => {
 
               socket.username = username;
               socket.userID = userID;
-              socket.emit('login', { username: socket.username });
+              socket.emit('login', { username, userID });
               socket.broadcast.emit('new message', {
                 type: 'automated',
                 content: `${username} has joined the chat`,
@@ -141,7 +141,7 @@ io.on('connection', (socket) => {
         } else {
           socket.username = username;
           socket.userID = results[0].id;
-          socket.emit('login', { username: socket.username });
+          socket.emit('login', { username, userID: socket.userID });
           socket.broadcast.emit('new message', {
             type: 'automated',
             content: `${username} has joined the chat`,
