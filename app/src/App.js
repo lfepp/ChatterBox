@@ -7,7 +7,7 @@ class App extends Component {
     return (
       <Grid className="chat-app-container">
         <Row className="center">
-          <PageHeader>ChatASAPP</PageHeader>
+          <PageHeader><h1>ChatASAPP</h1></PageHeader>
         </Row>
         <Row>
           <ChatContainer />

@@ -1,12 +1,16 @@
 import React from 'react';
+import { FormGroup, ControlLabel, FormControl } from 'react-bootstrap';
 
 const MessageInput = props => (
-  <textarea
-    autoFocus={true}
-    value={props.value}
-    onChange={props.handleChange}
-    className="chat-message-editor-input"
-  />
+  <FormGroup controlId="chatMessageInputTextarea">
+    <ControlLabel>Enter a message</ControlLabel>
+    <FormControl
+      componentClass="textarea"
+      autoFocus={true}
+      value={props.value}
+      onChange={props.handleChange}
+    />
+  </FormGroup>
 );
 
 export default MessageInput;
