@@ -195,6 +195,7 @@ export default class ChatContainer extends React.Component {
           getPreviousMessages={this.getPreviousMessages}
           isLoggedIn={this.state.isLoggedIn}
           loggedInUser={this.state.loggedInUser}
+          roomTitle="General Chat"
         />
       )
     );
