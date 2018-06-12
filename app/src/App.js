@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { PageHeader, Grid, Row } from 'react-bootstrap';
-import ChatContainer from './components/ChatContainer';
+import ChatRoomContainer from './components/ChatContainer';
 
 class App extends Component {
   render() {
@@ -10,7 +10,7 @@ class App extends Component {
           <PageHeader>ChatASAPP</PageHeader>
         </Row>
         <Row>
-          <ChatContainer />
+          <ChatRoomContainer />
         </Row>
       </Grid>
     );

@@ -11,7 +11,7 @@ const MessageList = ({ messages, isLoggedIn, loggedInUser }) => {
           <p>No new messages...</p> :
           (
             <Alert bsStyle="info">
-              Please log in to see older messages or respond
+              Please log in to see older messages or respond{'\n'}
               <small>Submit your username to create an account or sign in</small>
             </Alert>
           )
@@ -27,7 +27,7 @@ const MessageList = ({ messages, isLoggedIn, loggedInUser }) => {
         null :
         (
           <Alert bsStyle="info">
-            Please log in to see older messages or respond
+            Please log in to see older messages or respond{'\n'}
             <small>Submit your username to create an account or sign in</small>
           </Alert>
         )

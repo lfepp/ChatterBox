@@ -47,6 +47,46 @@ io.on('connection', (socket) => {
     socket.emit('error', { message: error.message, statusCode: 500 });
   });
 
+  socket.on('get logged in users request', ({ userID }) => {
+    if (!userID) {
+      socket.emit('error', { message: 'No user id in get user request', statusCode: 400 });
+      return;
+    }
+
+    db.getConnection((err, connection) => {
+      if (err) {
+        socket.emit('error', { message: err.message, statusCode: 501 });
+        return;
+      }
+
+      connection.on('error', (error) => {
+        console.error(error);
+        connection.release();
+      });
+
+      const userQueryData = [1];
+      connection.query(
+        ' \
+          SELECT u.id, u.username, ur.is_active \
+          FROM Users u \
+            JOIN UserRooms ur ON (u.id = ur.user_id) \
+          WHERE ur.room_id = ? \
+        ',
+        userQueryData,
+        (error, results) => {
+          if (error) {
+            socket.emit('error', { message: error.message, statusCode: 501 });
+            connection.release();
+            return;
+          }
+
+          socket.emit('get logged in users response', { users: results });
+          connection.release();
+        },
+      );
+    });
+  });
+
   socket.on('create message', (data) => {
     db.getConnection((err, connection) => {
       if (err) {
@@ -119,7 +159,7 @@ io.on('connection', (socket) => {
             }
 
             userID = result.insertId;
-            const userRoomData = { user_id: userID, room_id: 1 };
+            const userRoomData = { user_id: userID, room_id: 1, is_active: true };
             connection.query('INSERT INTO UserRooms SET ?', userRoomData, (userRoomErr, userRoomRes) => {
               if (userRoomErr) {
                 socket.emit('error', { message: userRoomErr.message, statusCode: 501 });
@@ -147,7 +187,22 @@ io.on('connection', (socket) => {
             content: `${username} has joined the chat`,
             timestamp: new Date().getTime(),
           });
-          connection.release();
+
+          const userRoomData = [socket.userID, 1];
+          connection.query('UPDATE UserRooms SET is_active = TRUE WHERE user_id = ? AND room_id = ?', userRoomData, (userRoomErr, userRoomRes) => {
+            if (userRoomErr) {
+              socket.emit('error', { message: userRoomErr.message, statusCode: 501 });
+              connection.release();
+              return;
+            }
+
+            socket.broadcast.emit('user joined', {
+              userID: socket.userID,
+              username: socket.username,
+              roomID: 1,
+            });
+            connection.release();
+          });
         }
       });
     });
@@ -236,7 +291,7 @@ io.on('connection', (socket) => {
       });
 
       const updateValues = [socket.userID, 1];
-      connection.query('UPDATE UserRooms SET last_online = NOW() WHERE user_id = ? AND room_id = ?', updateValues, (updateErr, updateRes) => {
+      connection.query('UPDATE UserRooms SET last_online = NOW(), is_active = FALSE WHERE user_id = ? AND room_id = ?', updateValues, (updateErr, updateRes) => {
         if (updateErr) {
           socket.emit('error', { message: updateErr.message, statusCode: 501 });
           connection.release();

@@ -2,7 +2,7 @@ import React from 'react';
 import socketIOClient from 'socket.io-client';
 import ChatWindow from '../ChatWindow';
 
-export default class ChatContainer extends React.Component {
+export default class ChatRoomContainer extends React.Component {
   constructor(props) {
     super(props);
     this.sendMessage = this.sendMessage.bind(this);
@@ -14,6 +14,7 @@ export default class ChatContainer extends React.Component {
       isLoggedIn: false,
       loggedInUser: null,
       canGetPreviousMessages: false,
+      allUsers: [],
     };
 
     this.socket = socketIOClient('http://127.0.0.1:18000', { transports: ['websocket', 'polling'] });
@@ -28,6 +29,68 @@ export default class ChatContainer extends React.Component {
         isLoggedIn: true,
         loggedInUser: userID,
         canGetPreviousMessages: true,
+      });
+
+      this.socket.emit('get logged in users request', { userID });
+    });
+
+    this.socket.on('get logged in users response', ({ users }) => {
+      this.setState({
+        allUsers: users.filter(user => user.id !== this.state.loggedInUser),
+      });
+    });
+
+    this.socket.on('user joined', ({ userID, username }) => {
+      let index = -1;
+      this.state.allUsers.forEach((user, i) => {
+        if (this.state.allUsers[i].id === userID) {
+          index = i;
+          return;
+        }
+      });
+
+      if (index === -1) {
+        this.setState({
+          allUsers: [
+            ...this.state.allUsers,
+            {
+              id: userID,
+              username,
+              is_active: true,
+            },
+          ],
+        });
+      } else {
+        const updatedUser = Object.assign({}, this.state.allUsers[index], {
+          is_active: true,
+        });
+
+        this.setState({
+          allUsers: [
+            ...this.state.allUsers.slice(0, index),
+            updatedUser,
+            ...this.state.allUsers.slice(index + 1),
+          ],
+        });
+      }
+    });
+
+    this.socket.on('user left', ({ userID }) => {
+      const index = this.state.allUsers.indexOf(userID);
+      if (index === -1) {
+        console.error('Received `user left` event but user not in state');
+        return;
+      }
+
+      const updatedUser = Object.assign({}, this.state.allUsers[index], {
+        is_active: false,
+      });
+      this.setState({
+        allUsers: [
+          ...this.state.allUsers.slice(0, index),
+          updatedUser,
+          ...this.state.allUsers.slice(index + 1),
+        ],
       });
     });
 
