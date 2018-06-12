@@ -1,13 +1,13 @@
 import React, { Component } from 'react';
 import { PageHeader, Grid, Row } from 'react-bootstrap';
-import ChatRoomContainer from './components/ChatContainer';
+import ChatRoomContainer from './components/ChatRoomContainer';
 
 class App extends Component {
   render() {
     return (
       <Grid className="chat-app-container">
         <Row className="center">
-          <PageHeader>ChatASAPP</PageHeader>
+          <PageHeader>ChatterBox</PageHeader>
         </Row>
         <Row>
           <ChatRoomContainer />

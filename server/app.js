@@ -290,7 +290,9 @@ io.on('connection', (socket) => {
         connection.release();
       });
 
-      const updateValues = [socket.userID, 1];
+      const username = socket.username;
+      const userID = socket.userID;
+      const updateValues = [userID, 1];
       connection.query('UPDATE UserRooms SET last_online = NOW(), is_active = FALSE WHERE user_id = ? AND room_id = ?', updateValues, (updateErr, updateRes) => {
         if (updateErr) {
           socket.emit('error', { message: updateErr.message, statusCode: 501 });
@@ -298,8 +300,9 @@ io.on('connection', (socket) => {
           return;
         }
 
-        const username = socket.username;
+
         if (username !== undefined) {
+          socket.broadcast.emit('user left', { userID });
           socket.broadcast.emit('new message', {
             type: 'automated',
             content: `${username} has left the chat`,
