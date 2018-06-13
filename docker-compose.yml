@@ -5,7 +5,7 @@ services:
         image: mysql:5.7
         environment:
             - MYSQL_ROOT_PASSWORD=testpass
-            - MYSQL_DATABASE=challenge
+            - MYSQL_DATABASE=chatterbox
         volumes:
             - devmysqldb:/var/lib/mysql
             - ./db/sql:/docker-entrypoint-initdb.d

@@ -7,7 +7,7 @@ const db = mysql.createPool({
   host: 'db',
   user: 'root',
   password: 'testpass',
-  database: 'challenge',
+  database: 'chatterbox',
 });
 
 const server = require('http').createServer(app);
