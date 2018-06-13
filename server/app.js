@@ -199,8 +199,7 @@ io.on('connection', (socket) => {
 
           const messageData = [
             1,
-            timePeriod.start,
-            timePeriod.end,
+            ...Object.values(timePeriod),
           ];
 
           chatSocket.queryDB({
