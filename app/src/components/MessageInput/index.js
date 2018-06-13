@@ -3,13 +3,31 @@ import { FormGroup, ControlLabel, FormControl } from 'react-bootstrap';
 
 const MessageInput = props => (
   <FormGroup controlId="chatMessageInputTextarea">
-    <ControlLabel>Enter a message</ControlLabel>
-    <FormControl
-      componentClass="textarea"
-      autoFocus={true}
-      value={props.value}
-      onChange={props.handleChange}
-    />
+    <ControlLabel>{props.isLoggedIn ? 'Enter a message' : 'Username'}</ControlLabel>
+    {
+      props.isLoggedIn ?
+      (
+        <FormControl
+          componentClass="textarea"
+          autoFocus={true}
+          value={props.value}
+          onChange={props.handleChange}
+        />
+      ) :
+      (
+        <FormControl
+          componentClass="input"
+          autoFocus={true}
+          value={props.value}
+          onChange={props.handleChange}
+          style={{
+            maxWidth: 140,
+          }}
+        />
+      )
+    }
+
+
   </FormGroup>
 );
 

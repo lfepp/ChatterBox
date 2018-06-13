@@ -7,19 +7,6 @@ class ChatSocket {
     this.userID = null;
     this.username = null;
 
-    this.setUserData = this.setUserData.bind(this);
-    this.getDBConnection = this.getDBConnection.bind(this);
-    this.startDBTransaction = this.startDBTransaction.bind(this);
-    this.createListener = this.createListener.bind(this);
-    this.queryDB = this.queryDB.bind(this);
-    this.emitError = this.emitError.bind(this);
-    this.createListener = this.createListener.bind(this);
-    this.emitEvent = this.emitEvent.bind(this);
-    this.broadcastEvent = this.broadcastEvent.bind(this);
-    this.releaseConnection = this.releaseConnection.bind(this);
-    this.commitTransaction = this.commitTransaction.bind(this);
-    this.getUserData = this.getUserData.bind(this);
-
     this.createListener('error', (error) => {
       console.error(error);
     });

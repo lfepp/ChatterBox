@@ -29,6 +29,7 @@ export default class MessageEditor extends React.Component {
         <MessageInput
           value={this.state.inputValue}
           handleChange={this.handleInputChange}
+          isLoggedIn={this.props.isLoggedIn}
         />
         <MessageEditorToolbar
           sendMessage={this.sendMessage}

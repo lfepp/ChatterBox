@@ -44,7 +44,7 @@ app.get('/test', function (req, res) {
 io.set('transports', ['websocket', 'polling']);
 
 io.on('connection', (socket) => {
-  let chatSocket = new ChatSocket(db, socket);
+  const chatSocket = new ChatSocket(db, socket);
 
   chatSocket.createListener('get logged in users request', ({ userID }) => {
     if (!userID) {
@@ -73,7 +73,11 @@ io.on('connection', (socket) => {
   chatSocket.createListener('create message', (data) => {
     chatSocket.getDBConnection(() => {
       chatSocket.startDBTransaction(() => {
-        const messageData = { content: data.content, user_id: chatSocket.getUserData().userID, room_id: 1 };
+        const messageData = {
+          content: data.content,
+          user_id: chatSocket.getUserData().userID,
+          room_id: 1,
+        };
 
         chatSocket.queryDB({
           query: 'INSERT INTO Messages SET ?',
