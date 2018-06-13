@@ -5,8 +5,8 @@ import MessageEditor from '../MessageEditor';
 import UserList from '../UserList';
 
 const ChatWindow = props => (
-  <Panel className="chat-window">
-    <Panel.Heading className="chat-header">
+  <Panel>
+    <Panel.Heading>
       <Panel.Title componentClass="h2">{props.roomTitle}</Panel.Title>
     </Panel.Heading>
     <Panel.Body>

@@ -5,8 +5,9 @@ const ChatMessage = props => {
   const date = new Date(props.timestamp);
 
   return (
-    <ListGroupItem className="chat-message">
-      {props.content}<small className="chat-message-date"> - {`${date.toLocaleDateString('en-US')} at ${date.toLocaleTimeString('en-US')}`}</small>
+    <ListGroupItem bsStyle={props.bsStyle}>
+      {props.content}
+      <small style={{ fontSize: '65%' }}>  ~  {`${date.toLocaleDateString('en-US')} at ${date.toLocaleTimeString('en-US')}`}</small>
     </ListGroupItem>
   );
 };
