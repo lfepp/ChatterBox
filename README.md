@@ -1,29 +1,31 @@
-# challenge-eng-base
+# ChatterBox
 
-This starter kit currently supports `React` for the frontend and `Go`, `Python`, `Java`, or `Node` for the backend.
+ChatterBox is a chat application you can use to talk to your friends! The client uses React to render the app and connects to the NodeJS backend using WebSockets.
 
-To get the project up and running:
-1. Install Docker https://docs.docker.com/engine/installation/
-2. In a terminal, go to the directory `challenge-eng-base-master`
-3. Edit `docker-compose.yml`. Change `services: backend: build:` based on your preferred language. Options are `backend-golang`, `backend-python`, `backend-java`, or `backend-node`.
-4. For a backend project
-    1. `docker-compose up backend`
-    2. Test that it's running http://localhost:18000/test
-5. For a fullstack project
-    1. `docker-compose up fullstack`
-    2. Test that it's running http://localhost:13000/test
+## Usage
 
-To restart the project
+### Get App Running Locally
 
-    docker-compose down
-    docker-compose up <backend or fullstack>
+1. [Install Docker](https://docs.docker.com/engine/installation/)
+1. Run `docker-compose up fullstack` to start the full app
+1. Run `docker-compose up backend` to start the server
 
-To see schema changes, remove the old db volume by adding `-v` when stopping
+### Restart App
 
-    docker-compose down -v
+1. Run `docker-compose down`
+1. Run `docker-compose up <backend or fullstack>`
 
-To see code changes, rebuild by adding `--build` when starting
+### See Code Changes
 
+1. Use the `--build` flag when restarting:
+    ```
     docker-compose up --build <backend or fullstack>
+    ```
 
-If you run into issues connecting to the db on startup, try restarting (without the `-v` flag).
+### Update SQL Schema
+
+1. Run `docker-compose down -v` to delete the database volume on stop
+
+## Author
+
+Lucas Epp
