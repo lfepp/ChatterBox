@@ -244,7 +244,6 @@ export default class ChatRoomContainer extends React.Component {
   }
 
   getPreviousMessages() {
-    // const before = this.state.messages.length > 0 ? this.state.messages[0][0].timestamp : null;
     let before = null;
     if (this.state.messages.length > 0) {
       before = new Date(this.state.messages[0][0].timestamp);

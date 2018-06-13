@@ -1,7 +1,8 @@
 const mysql = require('mysql');
 const express = require('express');
-const app = express();
+const ChatSocket = require('./socket.js');
 
+const app = express();
 const db = mysql.createPool({
   host: 'db',
   user: 'root',
@@ -40,301 +41,218 @@ app.get('/test', function (req, res) {
   });
 });
 
-const getDBConnection = (socket, callback) => {
-  db.getConnection((err, connection) => {
-    if (err) {
-      socket.emit('error', { ...err, statusCode: 501 });
-      return;
-    }
-
-    connection.on('error', (err) => {
-      console.error(err);
-      socket.emit('error', { ...err, statusCode: 501 });
-      connection.release();
-    });
-
-    callback(connection);
-  });
-};
-
-const startDBTransaction = (socket, connection, callback) => {
-  connection.beginTransaction((err) => {
-    if (err) {
-      socket.emit('error', { ...err, statusCode: 501 });
-      connection.release();
-      return;
-    }
-
-    callback();
-  });
-};
-
-const queryDB = (socket, connection, isTransaction, callback) => {};
-
 io.set('transports', ['websocket', 'polling']);
 
 io.on('connection', (socket) => {
-  socket.on('error', (error) => {
-    socket.emit('error', { ...error, statusCode: 500 });
-  });
+  let chatSocket = new ChatSocket(db, socket);
 
-  socket.on('get logged in users request', ({ userID }) => {
+  chatSocket.createListener('get logged in users request', ({ userID }) => {
     if (!userID) {
-      socket.emit('error', { message: 'No user id in get user request', statusCode: 400 });
+      chatSocket.emitError({ message: 'No user id in get user request', statusCode: 400 });
       return;
     }
 
-    getDBConnection(socket, (connection) => {
-      const userQueryData = [1];
-      connection.query(
-        ' \
+    chatSocket.getDBConnection(() => {
+      chatSocket.queryDB({
+        query: ' \
           SELECT u.id, u.username, ur.is_active \
           FROM Users u \
             JOIN UserRooms ur ON (u.id = ur.user_id) \
           WHERE ur.room_id = ? \
         ',
-        userQueryData,
-        (error, results) => {
-          if (error) {
-            socket.emit('error', { ...error, statusCode: 501 });
-            connection.release();
-            return;
-          }
-
-          socket.emit('get logged in users response', { users: results });
-          connection.release();
+        queryData: [1],
+        rollback: false,
+        callback: (results) => {
+          chatSocket.emitEvent('get logged in users response', { users: results });
+          chatSocket.releaseConnection();
         },
-      );
+      });
     });
   });
 
-  socket.on('create message', (data) => {
-    getDBConnection(socket, (connection) => {
-      startDBTransaction(socket, connection, () => {
-        const messageData = { content: data.content, user_id: socket.userID, room_id: 1 };
-        connection.query('INSERT INTO Messages SET ?', messageData, (error, results) => {
-          if (error) {
-            return connection.rollback(() => {
-              socket.emit('error', { ...error, statusCode: 501 });
-              connection.release();
-            });
-          }
+  chatSocket.createListener('create message', (data) => {
+    chatSocket.getDBConnection(() => {
+      chatSocket.startDBTransaction(() => {
+        const messageData = { content: data.content, user_id: chatSocket.getUserData().userID, room_id: 1 };
 
-          connection.commit((commitErr) => {
-            if (commitErr) {
-              return connection.rollback(() => {
-                socket.emit('error', { ...commitErr, statusCode: 501 });
+        chatSocket.queryDB({
+          query: 'INSERT INTO Messages SET ?',
+          queryData: messageData,
+          rollback: true,
+          callback: (insertResults) => {
+            chatSocket.commitTransaction(() => {
+              chatSocket.queryDB({
+                query: 'SELECT room_id, created_date FROM Messages WHERE id = ?',
+                queryData: [insertResults.insertId],
+                rollback: false,
+                callback: (selectResults) => {
+                  const emitMessageData = {
+                    ...chatSocket.getUserData(),
+                    roomID: selectResults[0].room_id,
+                    content: data.content,
+                    timestamp: selectResults[0].created_date,
+                    type: 'user_input',
+                  };
+
+                  io.emit('new message', emitMessageData);
+                  chatSocket.releaseConnection();
+                },
               });
-            }
-
-            connection.query('SELECT room_id, created_date FROM Messages WHERE id = ?', [results.insertId], (e, result) => {
-              if (e) {
-                socket.emit('error', { ...e, statusCode: 501 });
-                connection.release();
-                return;
-              }
-
-              const emitMessageData = {
-                userID: socket.userID,
-                roomID: result[0].room_id,
-                username: socket.username,
-                content: data.content,
-                timestamp: result[0].created_date,
-                type: 'user_input',
-              };
-              io.emit('new message', emitMessageData);
-              connection.release();
             });
-          });
+          },
         });
       });
     });
   });
 
   socket.on('sign in or create user', (username) => {
-    getDBConnection(socket, (connection) => {
-      connection.query('SELECT id FROM Users WHERE username = ?', [username], (error, results) => {
-        if (error) {
-          socket.emit('error', { ...error, statusCode: 501 });
-          connection.release();
-          return;
-        }
+    chatSocket.getDBConnection(() => {
+      chatSocket.queryDB({
+        query: 'SELECT id FROM Users WHERE username = ?',
+        queryData: [username],
+        rollback: false,
+        callback: (selectUserResults) => {
+          if (selectUserResults.length === 0) {
+            chatSocket.startDBTransaction(() => {
+              chatSocket.queryDB({
+                query: 'INSERT INTO Users SET ?',
+                queryData: { username },
+                rollback: true,
+                callback: (insertUserResults) => {
+                  const userID = insertUserResults.insertId;
+                  const userRoomData = { user_id: userID, room_id: 1, is_active: true };
 
-        if (results.length === 0) {
-          startDBTransaction(socket, connection, () => {
-            const userData = { username };
-            connection.query('INSERT INTO Users SET ?', userData, (e, result) => {
-              if (e) {
-                return connection.rollback(() => {
-                  socket.emit('error', { ...e, statusCode: 501 });
-                  connection.release();
-                });
-              }
-
-              const userID = result.insertId;
-              const userRoomData = { user_id: userID, room_id: 1, is_active: true };
-              connection.query('INSERT INTO UserRooms SET ?', userRoomData, (userRoomErr, userRoomRes) => {
-                if (userRoomErr) {
-                  return connection.rollback(() => {
-                    socket.emit('error', { ...userRoomErr, statusCode: 501 });
-                    connection.release();
+                  chatSocket.queryDB({
+                    query: 'INSERT INTO UserRooms SET ?',
+                    queryData: userRoomData,
+                    rollback: true,
+                    callback: () => {
+                      chatSocket.commitTransaction(() => {
+                        chatSocket.setUserData({ userID, username });
+                        chatSocket.emitEvent('login', { userID, username });
+                        chatSocket.broadcastEvent('new message', {
+                          type: 'automated',
+                          content: `${username} has joined the chat`,
+                          timestamp: new Date().getTime(),
+                        });
+                        chatSocket.releaseConnection();
+                      });
+                    }
                   });
-                }
+                },
+              });
+            });
+          } else {
+            const loginUserData = {
+              userID: selectUserResults[0].id,
+              username,
+            };
 
-                connection.commit((commitErr) => {
-                  if (commitErr) {
-                    return connection.rollback(() => {
-                      socket.emit('error', { ...commitErr, statusCode: 501 });
+            chatSocket.setUserData(loginUserData);
+            chatSocket.emitEvent('login', loginUserData);
+            chatSocket.broadcastEvent('new message', {
+              type: 'automated',
+              content: `${loginUserData.username} has joined the chat`,
+              timestamp: new Date().getTime(),
+            });
+
+            chatSocket.startDBTransaction(() => {
+              chatSocket.queryDB({
+                query: 'UPDATE UserRooms SET is_active = TRUE WHERE user_id = ? AND room_id = ?',
+                queryData: [loginUserData.userID, 1],
+                rollback: true,
+                callback: () => {
+                  chatSocket.commitTransaction(() => {
+                    chatSocket.broadcastEvent('user joined', {
+                      ...chatSocket.getUserData(),
+                      roomID: 1,
                     });
-                  }
-
-                  socket.username = username;
-                  socket.userID = userID;
-                  socket.emit('login', { username, userID });
-                  socket.broadcast.emit('new message', {
-                    type: 'automated',
-                    content: `${username} has joined the chat`,
-                    timestamp: new Date().getTime(),
+                    chatSocket.releaseConnection();
                   });
-                  connection.release();
-                });
+                },
               });
             });
-          });
-        } else {
-          socket.username = username;
-          socket.userID = results[0].id;
-          socket.emit('login', { username, userID: socket.userID });
-          socket.broadcast.emit('new message', {
-            type: 'automated',
-            content: `${username} has joined the chat`,
-            timestamp: new Date().getTime(),
-          });
-
-          const userRoomData = [socket.userID, 1];
-          startDBTransaction(socket, connection, () => {
-            connection.query('UPDATE UserRooms SET is_active = TRUE WHERE user_id = ? AND room_id = ?', userRoomData, (userRoomErr, userRoomRes) => {
-              if (userRoomErr) {
-                return connection.rollback(() => {
-                  socket.emit('error', { ...userRoomErr, statusCode: 501 });
-                  connection.release();
-                });
-              }
-
-              connection.commit((commitErr) => {
-                if (commitErr) {
-                  return connection.rollback(() => {
-                    socket.emit('error', { ...commitErr, statusCode: 501 });
-                    connection.release();
-                  });
-                }
-
-                socket.broadcast.emit('user joined', {
-                  userID: socket.userID,
-                  username: socket.username,
-                  roomID: 1,
-                });
-                connection.release();
-              });
-            });
-          });
-        }
+          }
+        },
       });
     });
   });
 
-  socket.on('get messages request', ({ before, getPrevious }) => {
+  chatSocket.createListener('get messages request', ({ before, getPrevious }) => {
     const timePeriod = {
       start: '2018-01-01',
       end: before ? new Date(before) : { toSqlString: () => ('NOW()') },
     };
 
-    getDBConnection(socket, (connection) => {
-      const selectValues = [socket.userID, 1];
-      connection.query('SELECT last_online FROM UserRooms WHERE user_id = ? AND room_id = ?', selectValues, (error, results) => {
-        if (error) {
-          socket.emit('error', { ...error, statusCode: 501 });
-          connection.release();
-          return;
-        }
+    chatSocket.getDBConnection(() => {
+      chatSocket.queryDB({
+        query: 'SELECT last_online FROM UserRooms WHERE user_id = ? AND room_id = ?',
+        queryData: [chatSocket.getUserData().userID, 1],
+        rollback: false,
+        callback: (selectResults) => {
+          if (selectResults.length > 0 && !getPrevious) {
+            timePeriod.start = new Date(selectResults[0].last_online);
+          }
 
-        if (results.length > 0 && !getPrevious) {
-          timePeriod.start = new Date(results[0].last_online);
-        }
+          const messageData = [
+            1,
+            timePeriod.start,
+            timePeriod.end,
+          ];
 
-        const messageData = [
-          1,
-          timePeriod.start,
-          timePeriod.end,
-        ];
+          chatSocket.queryDB({
+            query: ' \
+              SELECT u.username, m.* \
+              FROM Messages m \
+                JOIN Users u ON (u.id = m.user_id) \
+              WHERE m.room_id = ? \
+              AND m.created_date BETWEEN ? AND ? \
+            ',
+            queryData: messageData,
+            rollback: false,
+            callback: (selectMessageResults) => {
+              const responseData = {
+                messages: selectMessageResults.map(message => ({
+                  userID: message.user_id,
+                  roomID: message.room_id,
+                  username: message.username,
+                  content: message.content,
+                  timestamp: message.created_date,
+                  type: 'user_input',
+                })),
+              };
 
-        connection.query(
-          ' \
-            SELECT u.username, m.* \
-            FROM Messages m \
-              JOIN Users u ON (u.id = m.user_id) \
-            WHERE m.room_id = ? \
-            AND m.created_date BETWEEN ? AND ? \
-          ',
-          messageData,
-          (e, result) => {
-            if (e) {
-              console.error(e);
-              socket.emit('error', { ...e, statusCode: 501 });
-              connection.release();
-              return;
-            }
-
-            const responseData = {
-              messages: result.map(message => ({
-                userID: message.user_id,
-                roomID: message.room_id,
-                username: message.username,
-                content: message.content,
-                timestamp: message.created_date,
-                type: 'user_input',
-              })),
-            };
-            socket.emit('get messages response', responseData);
-            connection.release();
-          },
-        );
+              chatSocket.emitEvent('get messages response', responseData);
+              chatSocket.releaseConnection();
+            },
+          });
+        },
       });
     });
   });
 
   socket.on('disconnect', () => {
-    getDBConnection(socket, (connection) => {
-      startDBTransaction(socket, connection, () => {
-        const username = socket.username;
-        const userID = socket.userID;
-        const updateValues = [userID, 1];
-        connection.query('UPDATE UserRooms SET last_online = NOW(), is_active = FALSE WHERE user_id = ? AND room_id = ?', updateValues, (updateErr, updateRes) => {
-          if (updateErr) {
-            return connection.rollback(() => {
-              socket.emit('error', { ...updateErr, statusCode: 501 });
-              connection.release();
+    chatSocket.getDBConnection(() => {
+      chatSocket.startDBTransaction(() => {
+        const { userID, username } = chatSocket.getUserData();
+
+        chatSocket.queryDB({
+          query: 'UPDATE UserRooms SET last_online = NOW(), is_active = FALSE WHERE user_id = ? AND room_id = ?',
+          queryData: [userID, 1],
+          rollback: true,
+          callback: () => {
+            chatSocket.commitTransaction(() => {
+              if (username !== null) {
+                chatSocket.broadcastEvent('user left', { userID });
+                chatSocket.broadcastEvent('new message', {
+                  type: 'automated',
+                  content: `${username} has left the chat`,
+                  timestamp: new Date().getTime(),
+                });
+              }
+              chatSocket.releaseConnection(true);
             });
-          }
-
-          connection.commit((commitErr) => {
-            if (commitErr) {
-              return connection.rollback(() => {
-                socket.emit('error', { ...commitErr, statusCode: 501 });
-                connection.release();
-              });
-            }
-
-            if (username !== undefined) {
-              socket.broadcast.emit('user left', { userID });
-              socket.broadcast.emit('new message', {
-                type: 'automated',
-                content: `${username} has left the chat`,
-                timestamp: new Date().getTime(),
-              });
-            }
-            connection.release();
-          });
+          },
         });
       });
     });
