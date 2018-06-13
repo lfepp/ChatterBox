@@ -128,13 +128,16 @@ io.on('connection', (socket) => {
                     rollback: true,
                     callback: () => {
                       chatSocket.commitTransaction(() => {
-                        chatSocket.setUserData({ userID, username });
-                        chatSocket.emitEvent('login', { userID, username });
+                        const userData = { userID, username };
+
+                        chatSocket.setUserData(userData);
+                        chatSocket.emitEvent('login', userData);
                         chatSocket.broadcastEvent('new message', {
                           type: 'automated',
-                          content: `${username} has joined the chat`,
+                          content: `${userData.username} has joined the chat`,
                           timestamp: new Date().getTime(),
                         });
+                        chatSocket.broadcastEvent('user joined', userData);
                         chatSocket.releaseConnection();
                       });
                     }
