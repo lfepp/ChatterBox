@@ -6,7 +6,7 @@ const MessageList = ({ messages, isLoggedIn, loggedInUser, canGetPreviousMessage
   const SeeMoreButton = () => (
     canGetPreviousMessages ?
     (
-      <Button block onClick={getPreviousMessages}>
+      <Button block onClick={getPreviousMessages} style={{ marginBottom: 10 }}>
         See All Messages
       </Button>
     ) :
