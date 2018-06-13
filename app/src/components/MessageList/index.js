@@ -1,17 +1,30 @@
 import React from 'react';
-import { Alert, ListGroup } from 'react-bootstrap';
+import { Alert, ListGroup, Button } from 'react-bootstrap';
 import ChatMessage from '../ChatMessage';
 
-const MessageList = ({ messages, isLoggedIn, loggedInUser }) => {
+const MessageList = ({ messages, isLoggedIn, loggedInUser, canGetPreviousMessages, getPreviousMessages }) => {
+  const SeeMoreButton = () => (
+    canGetPreviousMessages ?
+    (
+      <Button block onClick={getPreviousMessages}>
+        See All Messages
+      </Button>
+    ) :
+    null
+  );
+
   if (messages.length === 0) {
     return (
       <div>
         {
           isLoggedIn ?
           (
-            <Alert bsStyle="info">
-              <p>No new messages...</p>
-            </Alert>
+            <div>
+              <SeeMoreButton />
+              <Alert bsStyle="info">
+                <p>No new messages...</p>
+              </Alert>
+            </div>
           ) :
           (
             <Alert bsStyle="info">
@@ -28,7 +41,7 @@ const MessageList = ({ messages, isLoggedIn, loggedInUser }) => {
     <div>
       {
         isLoggedIn ?
-        null :
+        <SeeMoreButton /> :
         (
           <Alert bsStyle="info">
             <p>Please log in to see older messages or respond</p>

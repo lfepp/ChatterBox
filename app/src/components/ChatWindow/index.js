@@ -19,13 +19,13 @@ const ChatWindow = props => (
                   messages={props.messages}
                   isLoggedIn={props.isLoggedIn}
                   loggedInUser={props.loggedInUser}
+                  getPreviousMessages={props.getPreviousMessages}
+                  canGetPreviousMessages={props.canGetPreviousMessages}
                 />
               </Panel.Body>
             </Panel>
             <MessageEditor
               sendMessage={props.sendMessage}
-              getPreviousMessages={props.getPreviousMessages}
-              canGetPreviousMessages={props.canGetPreviousMessages}
               isLoggedIn={props.isLoggedIn}
             />
           </Col>
