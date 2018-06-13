@@ -41,13 +41,7 @@ export default class ChatRoomContainer extends React.Component {
     });
 
     this.socket.on('user joined', ({ userID, username }) => {
-      let index = -1;
-      this.state.allUsers.forEach((user, i) => {
-        if (this.state.allUsers[i].id === userID) {
-          index = i;
-          return;
-        }
-      });
+      const index = this.state.allUsers.findIndex(user => (user.id === userID));
 
       if (index === -1) {
         this.setState({
@@ -76,13 +70,7 @@ export default class ChatRoomContainer extends React.Component {
     });
 
     this.socket.on('user left', ({ userID }) => {
-      let index = -1;
-      this.state.allUsers.forEach((user, i) => {
-        if (this.state.allUsers[i].id === userID) {
-          index = i;
-          return;
-        }
-      });
+      const index = this.state.allUsers.findIndex(user => (user.id === userID));
 
       if (index === -1) {
         console.error('Received `user left` event but user not in state');
